@@ -47,6 +47,9 @@ export const LiveRecorder: React.FC<LiveRecorderProps> = ({
   const [liveTranslation, setLiveTranslation] = useState('');
   const [isLiveTranslating, setIsLiveTranslating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [processingStatusText, setProcessingStatusText] = useState<string>(
+    'Transcribing audio & translating across 140+ languages...'
+  );
   const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -347,6 +350,12 @@ export const LiveRecorder: React.FC<LiveRecorderProps> = ({
   const handleProcessAudioBlob = async (blob: Blob, durationSeconds: number, customFileName?: string) => {
     setIsProcessing(true);
     setErrorMessage(null);
+    const sizeMb = (blob.size / (1024 * 1024)).toFixed(1);
+    setProcessingStatusText(
+      customFileName
+        ? `Analyzing ${customFileName} (${sizeMb} MB) with Gemini AI...`
+        : `Transcribing audio (${sizeMb} MB) & translating to ${targetLanguage.name}...`
+    );
 
     try {
       const audioBase64 = await blobToBase64(blob);
@@ -377,7 +386,7 @@ export const LiveRecorder: React.FC<LiveRecorderProps> = ({
 
       if (!response.ok || !json?.success) {
         if (response.status === 413) {
-          throw new Error('Audio file exceeds the network transfer size (max 24MB). Please record or upload a shorter clip.');
+          throw new Error('Audio file exceeds the supported upload size (max 250MB). Please select an audio file under 250MB.');
         }
         if (json?.error) {
           throw new Error(json.error);
@@ -425,10 +434,10 @@ export const LiveRecorder: React.FC<LiveRecorderProps> = ({
   const processSelectedFile = async (file: File) => {
     if (!file) return;
 
-    // Check size (cap at 24MB raw file size to stay cleanly under Nginx's 32M limit after Base64 encoding)
-    const MAX_FILE_SIZE_BYTES = 24 * 1024 * 1024;
+    // Check size (support up to 250MB audio and video files)
+    const MAX_FILE_SIZE_BYTES = 250 * 1024 * 1024;
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setErrorMessage(`Audio file is ${(file.size / (1024 * 1024)).toFixed(1)}MB. To ensure smooth online transcription, please upload an audio file under 24MB.`);
+      setErrorMessage(`Audio file is ${(file.size / (1024 * 1024)).toFixed(1)}MB. Maximum supported file size is 250MB.`);
       return;
     }
 
@@ -447,6 +456,7 @@ export const LiveRecorder: React.FC<LiveRecorderProps> = ({
 
     setErrorMessage(null);
     setIsProcessing(true);
+    setProcessingStatusText(`Preparing ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)...`);
 
     // Get duration via HTMLAudioElement
     const tempUrl = URL.createObjectURL(file);
@@ -748,8 +758,8 @@ export const LiveRecorder: React.FC<LiveRecorderProps> = ({
         {/* Processing Indicator */}
         {isProcessing && (
           <div id="processing-indicator" className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-sm font-medium mb-4 animate-pulse">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Transcribing audio &amp; translating to {targetLanguage.name} across 140+ languages...</span>
+            <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+            <span>{processingStatusText}</span>
           </div>
         )}
 
