@@ -1,0 +1,11 @@
+{
+  "name": "LucasScribe - Universal Audio Transcriber & Real-Time Translator",
+  "description": "Transcribe audio to text across every world language with real-time translation, microphone recording, audio file upload, and subtitle export.",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
+
